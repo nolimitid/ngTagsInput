@@ -192,6 +192,8 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, tagsInpu
                 spellcheck: [Boolean, true]
             });
 
+            $scope.autoCompleteloading = false;
+
             $scope.tagList = new TagList($scope.options, $scope.events,
                 tiUtil.handleUndefinedResult($scope.onTagAdding, true),
                 tiUtil.handleUndefinedResult($scope.onTagRemoving, true));
@@ -214,6 +216,10 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, tagsInpu
                     },
                     getOptions: function() {
                         return $scope.options;
+                    },
+                    trigger: function(name) {
+                        $scope.events.trigger(name);
+                        return this;
                     },
                     on: function(name, handler) {
                         $scope.events.on(name, handler);
@@ -439,6 +445,12 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, tagsInpu
                             event.preventDefault();
                         }
                     }
+                })
+                .on('loading-start', function() {
+                    scope.autoCompleteloading = true;
+                })
+                .on('loading-finish', function() {
+                    scope.autoCompleteloading = false;
                 });
         }
     };

@@ -66,7 +66,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
             }
             self.visible = true;
         };
-        self.load = tiUtil.debounce(function(query, tags) {
+        self.load = function(query, tags) {
+            var defer = $q.defer();
             self.query = query;
 
             var promise = $q.when(loadFn({ $query: query }));
@@ -87,8 +88,12 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                 else {
                     self.reset();
                 }
+            })
+            .finally(function() {
+                defer.resolve();
             });
-        }, options.debounceDelay);
+            return promise;
+        };
 
         self.selectNext = function() {
             self.select(++self.index);
@@ -205,7 +210,11 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                 })
                 .on('input-change', function(value) {
                     if (shouldLoadSuggestions(value)) {
-                        suggestionList.load(value, tagsInput.getTags());
+                        tagsInput.trigger('loading-start');
+                        suggestionList.load(value, tagsInput.getTags())
+                        .then(function () {
+                            tagsInput.trigger('loading-finish');
+                        });
                     }
                     else {
                         suggestionList.reset();
@@ -214,7 +223,11 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                 .on('input-focus', function() {
                     var value = tagsInput.getCurrentTagText();
                     if (options.loadOnFocus && shouldLoadSuggestions(value)) {
-                        suggestionList.load(value, tagsInput.getTags());
+                        tagsInput.trigger('loading-start');
+                        suggestionList.load(value, tagsInput.getTags())
+                        .then(function () {
+                            tagsInput.trigger('loading-finish');
+                        });
                     }
                 })
                 .on('input-keydown', function(event) {
@@ -245,7 +258,11 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                     }
                     else {
                         if (key === KEYS.down && scope.options.loadOnDownArrow) {
-                            suggestionList.load(tagsInput.getCurrentTagText(), tagsInput.getTags());
+                            tagsInput.trigger('loading-start');
+                            suggestionList.load(tagsInput.getCurrentTagText(), tagsInput.getTags())
+                            .then(function () {
+                                tagsInput.trigger('loading-finish');
+                            });
                             handled = true;
                         }
                     }
@@ -257,7 +274,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                     }
                 });
 
-            events.on('suggestion-selected', function(index) {
+            events
+            .on('suggestion-selected', function(index) {
                 scrollToElement(element, index);
             });
         }
